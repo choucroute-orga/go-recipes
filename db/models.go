@@ -42,6 +42,7 @@ type Recipe struct {
 	Dish        Dish               `json:"dish" bson:"dish" validate:"oneof=starter main dessert"`
 	Servings    int                `json:"servings" bson:"servings" validate:"required,min=1"`
 	Metadata    map[string]string  `json:"metadata" bson:"metadata" validate:"omitempty"`
-	Timers      []Timer            `json:"timers" bson:"timers" validate:"omitempty"`
+	Timers      []Timer            `json:"timers" bson:"timers" validate:"omitempty,dive,required"`
 	Steps       []string           `json:"steps" bson:"steps" validate:"required"`
+	Ingredients []Ingredient       `json:"ingredients" bson:"ingredients" validate:"required,dive,required"`
 }

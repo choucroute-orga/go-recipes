@@ -71,6 +71,10 @@ func (api *ApiHandler) saveRecipe(c echo.Context) error {
 		FailOnError(l, err, "Request binding failed")
 		return NewInternalServerError(err)
 	}
+	if err := c.Validate(recipe); err != nil {
+		FailOnError(l, err, "Validation failed")
+		return NewBadRequestError(err)
+	}
 	recipe.ID = db.NewID()
 	err := db.SaveRecipe(l, api.mongo, *recipe)
 	if err != nil {
@@ -100,7 +104,7 @@ func (api *ApiHandler) updateRecipe(c echo.Context) error {
 	recipe := new(db.Recipe)
 	if err := c.Bind(recipe); err != nil {
 		FailOnError(l, err, "Request binding failed")
-		return NewInternalServerError(err)
+		return NewBadRequestError(err)
 	}
 	if err := c.Validate(recipe); err != nil {
 		FailOnError(l, err, "Validation failed")
