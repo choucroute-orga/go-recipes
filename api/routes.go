@@ -38,6 +38,15 @@ func (api *ApiHandler) getReadyStatus(c echo.Context) error {
 	return c.JSON(http.StatusOK, NewHealthResponse(ReadyStatus))
 }
 
+func (api *ApiHandler) getRecipes(c echo.Context) error {
+	l := logger.WithField("request", "getRecipes")
+	recipes, err := db.FindAllRecipes(l, api.mongo)
+	if err != nil {
+		return NewNotFoundError(err)
+	}
+	return c.JSON(http.StatusOK, recipes)
+}
+
 func (api *ApiHandler) getRecipeByTitle(c echo.Context) error {
 	l := logger.WithField("request", "getRecipeByTitle")
 	title := c.Param("title")
@@ -58,6 +67,17 @@ func (api *ApiHandler) getRecipeByID(c echo.Context) error {
 		return NewNotFoundError(err)
 	}
 	recipe, err := db.FindRecipeByID(l, api.mongo, idObject)
+	if err != nil {
+		return NewNotFoundError(err)
+	}
+	return c.JSON(http.StatusOK, recipe)
+}
+
+func (api *ApiHandler) getRecipeByIngredientID(c echo.Context) error {
+	l := logger.WithField("request", "getRecipeByIngredientID")
+	id := c.Param("id")
+
+	recipe, err := db.FindRecipeByIngredientID(l, api.mongo, id)
 	if err != nil {
 		return NewNotFoundError(err)
 	}

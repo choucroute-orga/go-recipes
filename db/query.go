@@ -26,6 +26,38 @@ func NewID() primitive.ObjectID {
 	return primitive.NewObjectID()
 }
 
+func FindAllRecipes(l *logrus.Entry, mongo *mongo.Client) (*[]Recipe, error) {
+	collection := mongo.Database("recipe").Collection("recipe")
+	cursor, err := collection.Find(context.Background(), bson.M{})
+	if err != nil {
+		l.WithError(err).Error("Error when trying to find all recipes")
+		return nil, err
+	}
+	var recipes []Recipe
+	err = cursor.All(context.Background(), &recipes)
+	if err != nil {
+		l.WithError(err).Error("Error when trying to decode all recipes")
+		return nil, err
+	}
+	return &recipes, nil
+}
+
+func FindRecipeByIngredientID(l *logrus.Entry, mongo *mongo.Client, id string) (*[]Recipe, error) {
+	collection := mongo.Database("recipe").Collection("recipe")
+	cursor, err := collection.Find(context.Background(), bson.M{"ingredients._id": id})
+	if err != nil {
+		l.WithError(err).Error("Error when trying to find recipe by ingredient id")
+		return nil, err
+	}
+	var recipes []Recipe
+	err = cursor.All(context.Background(), &recipes)
+	if err != nil {
+		l.WithError(err).Error("Error when trying to decode all recipes")
+		return nil, err
+	}
+	return &recipes, nil
+}
+
 func FindRecipeByTitle(l *logrus.Entry, mongo *mongo.Client, title string) (*Recipe, error) {
 	collection := mongo.Database("recipe").Collection("recipe")
 	var recipe Recipe

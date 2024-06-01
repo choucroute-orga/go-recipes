@@ -27,8 +27,10 @@ func (api *ApiHandler) Register(v1 *echo.Group, conf *configuration.Configuratio
 	health.GET("/live", api.getAliveStatus)
 	health.GET("/ready", api.getReadyStatus)
 
-	recipes := v1.Group("/recipes")
+	recipes := v1.Group("/recipe")
+	recipes.GET("", api.getRecipes)
 	recipes.GET("/:id", api.getRecipeByID)
+	recipes.GET("/ingredient/:id", api.getRecipeByIngredientID)
 	recipes.GET("/title/:title", api.getRecipeByTitle)
 	recipes.POST("", api.saveRecipe)
 	recipes.PUT("/:id", api.updateRecipe)
