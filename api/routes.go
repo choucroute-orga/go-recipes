@@ -95,7 +95,9 @@ func (api *ApiHandler) saveRecipe(c echo.Context) error {
 		FailOnError(l, err, "Validation failed")
 		return NewBadRequestError(err)
 	}
-	recipe.ID = db.NewID()
+	if recipe.ID.String() == "" {
+		recipe.ID = db.NewID()
+	}
 	err := db.SaveRecipe(l, api.mongo, *recipe)
 	if err != nil {
 		FailOnError(l, err, "Error when trying to save recipe")

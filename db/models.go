@@ -22,16 +22,16 @@ type Metadata struct {
 
 // Hashmap is a key value pair to store metadata
 type Timer struct {
-	Name     string `json:"name" bson:"name" validate:"required"`
-	Quantity int    `json:"quantity" bson:"quantity" validate:"required,min=1"`
-	Units    string `json:"units" bson:"units" validate:"oneof=seconds minutes hours"`
+	Name   string `json:"name" bson:"name" validate:"required"`
+	Amount int    `json:"amount" bson:"quantity" validate:"required,min=1"`
+	Unit   string `json:"unit" bson:"units" validate:"oneof=seconds minutes hours"`
 }
 
 // Reference the ingredient in the catalog MS
 type Ingredient struct {
-	ID       string  `json:"id" bson:"_id" validate:"omitempty"`
-	Quantity float64 `json:"quantity" bson:"quantity" validate:"required,min=0.1"`
-	Units    string  `json:"units" bson:"units" validate:"oneof=i is cs tbsp tsp g kg"`
+	ID     string  `json:"id" bson:"_id" validate:"omitempty"`
+	Amount float64 `json:"amount" bson:"quantity" validate:"required,min=0.1"`
+	Unit   string  `json:"unit" bson:"units" validate:"oneof=i is cs tbsp tsp g kg"`
 }
 
 type Recipe struct {
