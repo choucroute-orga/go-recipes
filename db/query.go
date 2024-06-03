@@ -61,7 +61,8 @@ func FindRecipeByIngredientID(l *logrus.Entry, mongo *mongo.Client, id string) (
 func FindRecipeByTitle(l *logrus.Entry, mongo *mongo.Client, title string) (*Recipe, error) {
 	collection := mongo.Database("recipe").Collection("recipe")
 	var recipe Recipe
-	err := collection.FindOne(context.Background(), bson.M{"name": title}).Decode(&recipe)
+	// Search if the name is in the title
+	err := collection.FindOne(context.Background(), bson.M{"name": bson.M{"$regex": title, "$options": "i"}}).Decode(&recipe)
 	if err != nil {
 		l.WithError(err).Error("Error when trying to find recipe by title")
 		return nil, err
