@@ -4,6 +4,7 @@ import (
 	"context"
 	"fmt"
 	"recipes/configuration"
+	"time"
 
 	"go.mongodb.org/mongo-driver/mongo"
 	"go.mongodb.org/mongo-driver/mongo/options"
@@ -21,7 +22,9 @@ func New(conf *configuration.Configuration) (*mongo.Client, error) {
 		panic(err)
 	}
 
-	err = client.Ping(context.TODO(), nil)
+	ctx, cancel := context.WithTimeout(context.Background(), time.Second*3)
+	defer cancel()
+	err = client.Ping(ctx, nil)
 	if err != nil {
 		panic(err)
 	}

@@ -92,8 +92,14 @@ func SaveRecipe(l *logrus.Entry, mongo *mongo.Client, recipe Recipe) error {
 
 func DeleteRecipeByID(l *logrus.Entry, mongo *mongo.Client, id primitive.ObjectID) error {
 	collection := mongo.Database("recipe").Collection("recipe")
-	_, err := collection.DeleteOne(context.Background(), bson.M{"_id": id})
+	res, err := collection.DeleteOne(context.Background(), bson.M{"_id": id})
 	if err != nil {
+		l.WithError(err).Error("Error when trying to delete recipe by id")
+		return err
+	}
+
+	if res.DeletedCount == 0 {
+		err = errors.New("ID not found")
 		l.WithError(err).Error("Error when trying to delete recipe by id")
 		return err
 	}
