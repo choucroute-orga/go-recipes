@@ -2,7 +2,6 @@ package db
 
 import (
 	"context"
-	"fmt"
 	"recipes/configuration"
 	"time"
 
@@ -14,10 +13,9 @@ func New(conf *configuration.Configuration) (*mongo.Client, error) {
 
 	// Database connexion
 
-	uri := fmt.Sprintf("mongodb://%s:%s@%s:%s/%s", conf.DBUser, conf.DBPassword, conf.DBHost, conf.DBPort, conf.DBName)
-	loger.Info("Connecting to MongoDB..." + uri)
+	loger.Info("Connecting to MongoDB..." + conf.DBURI)
 	client, err := mongo.Connect(context.TODO(), options.Client().
-		ApplyURI(uri))
+		ApplyURI(conf.DBURI))
 	if err != nil {
 		panic(err)
 	}
