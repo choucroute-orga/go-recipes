@@ -2,20 +2,34 @@ package db
 
 import (
 	"context"
-	"recipes/configuration"
 	"time"
 
 	"go.mongodb.org/mongo-driver/mongo"
 	"go.mongodb.org/mongo-driver/mongo/options"
 )
 
-func New(conf *configuration.Configuration) (*mongo.Client, error) {
+type DbHandler struct {
+	Client                *mongo.Client
+	DBName                string
+	RecipesCollectionName string
+}
+
+func NewDbHandler(client *mongo.Client, dbName string, recipesCollectionName string) *DbHandler {
+	handler := DbHandler{
+		Client:                client,
+		DBName:                dbName,
+		RecipesCollectionName: recipesCollectionName,
+	}
+	return &handler
+}
+
+func New(dbUri string, dbName string, recipesCollectionName string) (*DbHandler, error) {
 
 	// Database connexion
 
-	loger.Info("Connecting to MongoDB..." + conf.DBURI)
+	loger.Info("Connecting to MongoDB..." + dbUri)
 	client, err := mongo.Connect(context.TODO(), options.Client().
-		ApplyURI(conf.DBURI))
+		ApplyURI(dbUri))
 	if err != nil {
 		panic(err)
 	}
@@ -27,5 +41,5 @@ func New(conf *configuration.Configuration) (*mongo.Client, error) {
 		panic(err)
 	}
 	loger.Info("Connected to MongoDB!")
-	return client, nil
+	return NewDbHandler(client, dbName, recipesCollectionName), nil
 }

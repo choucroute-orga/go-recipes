@@ -2,6 +2,7 @@ package api
 
 import (
 	"context"
+	"errors"
 	"net/http"
 	"recipes/db"
 
@@ -29,7 +30,7 @@ func (api *ApiHandler) getAliveStatus(c echo.Context) error {
 
 func (api *ApiHandler) getReadyStatus(c echo.Context) error {
 	l := logger.WithField("request", "getReadyStatus")
-	err := api.mongo.Ping(context.Background(), nil)
+	err := api.dbh.Client.Ping(context.Background(), nil)
 	if err != nil {
 		WarnOnError(l, err, "Unable to ping database to check connection.")
 		return c.JSON(http.StatusServiceUnavailable, NewHealthResponse(NotReadyStatus))
@@ -40,7 +41,7 @@ func (api *ApiHandler) getReadyStatus(c echo.Context) error {
 
 func (api *ApiHandler) getRecipes(c echo.Context) error {
 	l := logger.WithField("request", "getRecipes")
-	recipes, err := db.FindAllRecipes(l, api.mongo)
+	recipes, err := api.dbh.FindAllRecipes(l)
 	if err != nil {
 		return NewNotFoundError(err)
 	}
@@ -50,7 +51,7 @@ func (api *ApiHandler) getRecipes(c echo.Context) error {
 func (api *ApiHandler) getRecipeByTitle(c echo.Context) error {
 	l := logger.WithField("request", "getRecipeByTitle")
 	title := c.Param("title")
-	recipe, err := db.FindRecipeByTitle(l, api.mongo, title)
+	recipe, err := api.dbh.FindRecipeByTitle(l, title)
 	if err != nil {
 		return NewNotFoundError(err)
 	}
@@ -61,12 +62,7 @@ func (api *ApiHandler) getRecipeByTitle(c echo.Context) error {
 func (api *ApiHandler) getRecipeByID(c echo.Context) error {
 	l := logger.WithField("request", "getRecipeByID")
 	id := c.Param("id")
-	idObject, err := primitive.ObjectIDFromHex(id)
-	if err != nil {
-		WarnOnError(l, err, "Invalid ID")
-		return NewNotFoundError(err)
-	}
-	recipe, err := db.FindRecipeByID(l, api.mongo, idObject)
+	recipe, err := api.dbh.FindRecipeByID(l, id)
 	if err != nil {
 		return NewNotFoundError(err)
 	}
@@ -77,11 +73,15 @@ func (api *ApiHandler) getRecipeByIngredientID(c echo.Context) error {
 	l := logger.WithField("request", "getRecipeByIngredientID")
 	id := c.Param("id")
 
-	recipe, err := db.FindRecipeByIngredientID(l, api.mongo, id)
+	recipes, err := api.dbh.FindRecipesByIngredientID(l, id)
+	if len(*recipes) == 0 {
+		err = errors.Join(errors.New("no recipe found for ingredient id"), err)
+		l.Error(err)
+	}
 	if err != nil {
 		return NewNotFoundError(err)
 	}
-	return c.JSON(http.StatusOK, recipe)
+	return c.JSON(http.StatusOK, recipes)
 }
 
 func (api *ApiHandler) saveRecipe(c echo.Context) error {
@@ -96,9 +96,9 @@ func (api *ApiHandler) saveRecipe(c echo.Context) error {
 		return NewBadRequestError(err)
 	}
 	if recipe.ID.String() == "" {
-		recipe.ID = db.NewID()
+		recipe.ID = api.dbh.NewID()
 	}
-	err := db.SaveRecipe(l, api.mongo, *recipe)
+	err := api.dbh.SaveRecipe(l, *recipe)
 	if err != nil {
 		FailOnError(l, err, "Error when trying to save recipe")
 		return NewInternalServerError(err)
@@ -109,12 +109,7 @@ func (api *ApiHandler) saveRecipe(c echo.Context) error {
 func (api *ApiHandler) deleteRecipe(c echo.Context) error {
 	l := logger.WithField("request", "deleteRecipeByID")
 	id := c.Param("id")
-	idObject, err := primitive.ObjectIDFromHex(id)
-	if err != nil {
-		WarnOnError(l, err, "Invalid ID")
-		return NewNotFoundError(err)
-	}
-	err = db.DeleteRecipeByID(l, api.mongo, idObject)
+	err := api.dbh.DeleteRecipeByID(l, id)
 	if err != nil {
 		return NewNotFoundError(err)
 	}
@@ -137,7 +132,7 @@ func (api *ApiHandler) updateRecipe(c echo.Context) error {
 		return NewNotFoundError(err)
 	}
 	recipe.ID = id
-	err = db.UpsertOne(l, api.mongo, recipe)
+	err = api.dbh.UpsertOne(l, recipe)
 	if err != nil {
 		FailOnError(l, err, "Error when trying to save recipe")
 		return NewInternalServerError(err)

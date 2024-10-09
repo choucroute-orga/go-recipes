@@ -6,12 +6,10 @@ import (
 	"fmt"
 	"log"
 	"math/rand"
-	"recipes/tests"
 	"testing"
 
 	"github.com/sirupsen/logrus"
 	"go.mongodb.org/mongo-driver/bson"
-	"go.mongodb.org/mongo-driver/mongo"
 )
 
 func doubleMe(x float64) float64 {
@@ -29,7 +27,7 @@ func setupSuite(tb testing.TB) func(tb testing.TB) {
 }
 
 // Almost the same as the above, but this one is for single test instead of collection of tests
-func setupTest(tb testing.TB) (*mongo.Client, func(tb testing.TB)) {
+func setupTest(tb testing.TB) (*DbHandler, func(tb testing.TB)) {
 	// log.Println("setup test")
 
 	// return func(tb testing.TB) {
@@ -38,10 +36,10 @@ func setupTest(tb testing.TB) (*mongo.Client, func(tb testing.TB)) {
 
 	// Get a random port for the test, between 1024 and 65535
 	exposedPort := fmt.Sprint(rand.Intn(65525-1024) + 1024)
-	mongo, pool, resource := tests.InitTestDocker(exposedPort)
-	tests.SeedDatabase(mongo)
-	return mongo, func(tb testing.TB) {
-		tests.CloseTestDocker(mongo, pool, resource)
+	dbh, pool, resource := InitTestDocker(exposedPort)
+	SeedDatabase(dbh.Client)
+	return dbh, func(tb testing.TB) {
+		CloseTestDocker(dbh.Client, pool, resource)
 	}
 }
 
@@ -51,7 +49,7 @@ func TestDoubleMe(t *testing.T) {
 
 	t.Run("Insert one Recipe in the DB", func(t *testing.T) {
 		l := logrus.WithField("test", "Insert one Recipe in the DB")
-		mongo, teardownTest := setupTest(t)
+		dbh, teardownTest := setupTest(t)
 
 		recipeJSON := `{
 				"id": "59b40d78cc5d6a001237265e",
@@ -117,14 +115,13 @@ func TestDoubleMe(t *testing.T) {
 		if err != nil {
 			t.Errorf("Error when trying to unmarshal recipe: %v", err)
 		}
-
-		err = SaveRecipe(l, mongo, Recipe1)
+		err = dbh.SaveRecipe(l, Recipe1)
 
 		if err != nil {
 			t.Errorf("Error when trying to save recipe: %v", err)
 		}
 
-		collection := mongo.Database("recipe").Collection("recipe")
+		collection := dbh.Client.Database("recipe").Collection("recipe")
 		nb, err := collection.CountDocuments(context.Background(), bson.M{})
 		if err != nil {
 			t.Errorf("Error when trying to find all recipes: %v", err)
@@ -133,7 +130,7 @@ func TestDoubleMe(t *testing.T) {
 			t.Errorf("Expected 1 recipes, got %v", nb)
 		}
 
-		r, err := FindRecipeByTitle(l, mongo, "Pate tomates basilic")
+		r, err := dbh.FindRecipeByTitle(l, "Pate tomates basilic")
 
 		if err != nil {
 			t.Errorf("Error when trying to find recipe by title: %v", err)

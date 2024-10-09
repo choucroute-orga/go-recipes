@@ -1,4 +1,4 @@
-package tests
+package db
 
 import (
 	"context"
@@ -14,7 +14,7 @@ import (
 )
 
 // InitTestDocker function initialize docker with mongo image used for integration tests
-func InitTestDocker(exposedPort string) (*mongo.Client, *dockertest.Pool, *dockertest.Resource) {
+func InitTestDocker(exposedPort string) (*DbHandler, *dockertest.Pool, *dockertest.Resource) {
 	pool, err := dockertest.NewPool("")
 	if err != nil {
 		log.Fatalf("Could not construct pool: %s", err)
@@ -44,16 +44,16 @@ func InitTestDocker(exposedPort string) (*mongo.Client, *dockertest.Pool, *docke
 	if err != nil {
 		log.Fatalf("Could not start resource: %s", err)
 	}
-
+	DBURI := fmt.Sprintf("mongodb://root:password@localhost:%s", resource.GetPort("27017/tcp"))
+	DBName := "recipe"
+	RecipeCollectionName := "recipe"
 	var client *mongo.Client
 	// exponential backoff-retry, because the application in the container might not be ready to accept connections yet
 	err = pool.Retry(func() error {
 		var err error
 		client, err = mongo.Connect(
 			context.TODO(),
-			options.Client().ApplyURI(
-				fmt.Sprintf("mongodb://root:password@localhost:%s", resource.GetPort("27017/tcp")),
-			),
+			options.Client().ApplyURI(DBURI),
 		)
 		if err != nil {
 			return err
@@ -67,8 +67,9 @@ func InitTestDocker(exposedPort string) (*mongo.Client, *dockertest.Pool, *docke
 	if err != nil {
 		log.Fatalf("Could not connect to docker: %s", err)
 	}
+	// Set environment variables for the configuration
 
-	return client, pool, resource
+	return NewDbHandler(client, DBName, RecipeCollectionName), pool, resource
 }
 
 func CloseTestDocker(client *mongo.Client, pool *dockertest.Pool, resource *dockertest.Resource) {
