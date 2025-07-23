@@ -21,6 +21,7 @@ type Configuration struct {
 	DBName                string
 	RecipesCollectionName string
 	TranslateValidation   bool
+	OtelServiceName       string
 	JWTSecret             string
 }
 
@@ -85,6 +86,13 @@ func New() *Configuration {
 	}
 
 	conf.JWTSecret = os.Getenv("JWT_SECRET")
+
+	conf.OtelServiceName = os.Getenv("OTEL_SERVICE_NAME")
+
+	if len(conf.OtelServiceName) < 1 {
+		logger.Error("OTEL_SERVICE_NAME is not set")
+		os.Exit(1)
+	}
 
 	return &conf
 }

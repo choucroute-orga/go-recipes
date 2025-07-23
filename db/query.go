@@ -77,6 +77,21 @@ func (dbh *DbHandler) FindRecipeByID(l *logrus.Entry, id string) (*Recipe, error
 	return &recipe, nil
 }
 
+func (dbh *DbHandler) FindRecipesByAuthorID(l *logrus.Entry, author string) (*[]Recipe, error) {
+	cursor, err := dbh.GetRecipeCollection().Find(context.Background(), bson.M{"author": author})
+	if err != nil {
+		l.WithError(err).Error("Error when trying to find recipe by author")
+		return nil, err
+	}
+	recipes := make([]Recipe, 0)
+	err = cursor.All(context.Background(), &recipes)
+	if err != nil {
+		l.WithError(err).Error("Error when trying to decode all recipes")
+		return nil, err
+	}
+	return &recipes, nil
+}
+
 // TODO Return the saved recipe
 func (dbh *DbHandler) SaveRecipe(l *logrus.Entry, recipe Recipe) error {
 	_, err := dbh.GetRecipeCollection().InsertOne(context.Background(), recipe)

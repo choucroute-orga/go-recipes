@@ -9,6 +9,7 @@ import (
 	"github.com/labstack/echo/v4"
 	"github.com/sirupsen/logrus"
 	"go.mongodb.org/mongo-driver/bson/primitive"
+	"go.opentelemetry.io/otel/codes"
 )
 
 var logger = logrus.WithField("context", "api/routes")
@@ -138,4 +139,31 @@ func (api *ApiHandler) updateRecipe(c echo.Context) error {
 		return NewInternalServerError(err)
 	}
 	return c.JSON(http.StatusCreated, recipe)
+}
+
+func (api *ApiHandler) getRecipesFromAuthor(c echo.Context) error {
+	ctx, span := api.tracer.Start(c.Request().Context(), "api.getRecipesFromAuthor")
+	defer span.End()
+	l := logger.WithContext(ctx).WithField("request", "getRecipesFromAuthor")
+
+	idParam := new(IDParam)
+	if err := c.Bind(idParam); err != nil {
+		span.RecordError(err)
+		span.SetStatus(codes.Error, "Request binding failed")
+		FailOnError(l, err, "Request binding failed")
+		return NewBadRequestError(err)
+	}
+	if err := c.Validate(idParam); err != nil {
+		span.RecordError(err)
+		span.SetStatus(codes.Error, "Request validation failed")
+		FailOnError(l, err, "Request validation failed")
+		return NewBadRequestError(err)
+	}
+
+	recipes, err := api.dbh.FindRecipesByAuthorID(l, idParam.ID)
+	if err != nil {
+		return NewInternalServerError(err)
+	}
+
+	return c.JSON(http.StatusOK, recipes)
 }
